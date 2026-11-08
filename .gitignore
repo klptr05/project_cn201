@@ -1,0 +1,4 @@
+out/
+littlefarm_save.txt
+*.class
+.DS_Store
