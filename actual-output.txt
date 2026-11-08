@@ -1,0 +1,2 @@
+Farm image: 640x480
+SHA-256: 054d2e5218e5c06f7dc3cdcef65c68ffb0112c4ee45c44053f9fa04cca216f5b

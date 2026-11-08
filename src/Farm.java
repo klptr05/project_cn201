@@ -100,42 +100,69 @@ public class Farm {
     }
 
     private void drawTile(Graphics2D g, Tile tile, int col, int row) {
-        int x = col * TILE, y = row * TILE;
-        int seed = col * 7 + row * 13;   // so each grass tile looks a little different, but never flickers
-        switch (tile.getType()) {
-            case SOIL:
-                g.setColor(tile.isWatered() ? SOIL_WET : SOIL);
-                g.fillRect(x, y, TILE, TILE);
-                g.setColor(tile.isWatered() ? SOIL_WET.darker() : SOIL.darker());
-                for (int i = 6; i < TILE; i += 9) g.drawLine(x + 3, y + i, x + TILE - 4, y + i);
-                if (tile.hasCrop()) {
-                    tile.getCrop().draw(g, x, y);
-                    if (!tile.isWatered() && !tile.getCrop().isMature()) drawDroplet(g, x + 23, y + 2);
-                }
-                break;
-            case POND:
-                g.setColor(new Color(70, 140, 220));
-                g.fillRect(x, y, TILE, TILE);
-                g.setColor(new Color(150, 200, 250));
-                g.drawArc(x + 6, y + 8 + seed % 10, 12, 6, 0, 180);
-                break;
-            case FENCE:
-                drawGrass(g, x, y, seed);
-                g.setColor(WOOD);
-                if (col == 0 || col == COLS - 1) {
-                    g.fillRect(x + 10, y, 3, TILE);
-                    g.fillRect(x + 19, y, 3, TILE);
-                    g.fillRect(x + 8, y + 12, 16, 8);
-                } else {
-                    g.fillRect(x, y + 10, TILE, 3);
-                    g.fillRect(x, y + 19, TILE, 3);
-                    g.fillRect(x + 12, y + 6, 8, 20);
-                }
-                break;
-            default:   // grass, and the ground under buildings
-                drawGrass(g, x, y, seed);
+    int x = col * TILE, y = row * TILE;
+    int seed = col * 7 + row * 13;
+
+    switch (tile.getType()) {
+        case SOIL:
+            drawSoil(g, tile, x, y);
+            break;
+
+        case POND:
+            drawPond(g, x, y, seed);
+            break;
+
+        case FENCE:
+            drawFence(g, x, y, seed, col);
+            break;
+
+        default:
+            drawGrass(g, x, y, seed);
+    }
+}
+
+private void drawSoil(Graphics2D g, Tile tile, int x, int y) {
+    g.setColor(tile.isWatered() ? SOIL_WET : SOIL);
+    g.fillRect(x, y, TILE, TILE);
+
+    g.setColor(tile.isWatered() ? SOIL_WET.darker() : SOIL.darker());
+
+    for (int i = 6; i < TILE; i += 9) {
+        g.drawLine(x + 3, y + i, x + TILE - 4, y + i);
+    }
+
+    if (tile.hasCrop()) {
+        tile.getCrop().draw(g, x, y);
+
+        if (!tile.isWatered() && !tile.getCrop().isMature()) {
+            drawDroplet(g, x + 23, y + 2);
         }
     }
+}
+
+private void drawPond(Graphics2D g, int x, int y, int seed) {
+    g.setColor(new Color(70, 140, 220));
+    g.fillRect(x, y, TILE, TILE);
+
+    g.setColor(new Color(150, 200, 250));
+    g.drawArc(x + 6, y + 8 + seed % 10, 12, 6, 0, 180);
+}
+
+private void drawFence(Graphics2D g, int x, int y, int seed, int col) {
+    drawGrass(g, x, y, seed);
+
+    g.setColor(WOOD);
+
+    if (col == 0 || col == COLS - 1) {
+        g.fillRect(x + 10, y, 3, TILE);
+        g.fillRect(x + 19, y, 3, TILE);
+        g.fillRect(x + 8, y + 12, 16, 8);
+    } else {
+        g.fillRect(x, y + 10, TILE, 3);
+        g.fillRect(x, y + 19, TILE, 3);
+        g.fillRect(x + 12, y + 6, 8, 20);
+    }
+}
 
     private void drawGrass(Graphics2D g, int x, int y, int seed) {
         g.setColor(GRASS);
