@@ -40,9 +40,12 @@ public class Farm {
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
                 char symbol = MAP[r].charAt(c);
-                if (symbol == 'V') {
-                    villager = new Villager("Mrs. Daeng", c, r);
-                    symbol = '.';   // she stands on grass
+                if (symbol == 'K') {
+                    villager = new Villager("Ajarn. Khiao", c, r);
+                    symbol = '.';
+                }
+                if (symbol == 'M') {
+                    cat = new Animal("meengern", c, r);
                 }
                 tiles[r][c] = new Tile(TileType.fromSymbol(symbol));
             }
