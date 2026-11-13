@@ -35,6 +35,7 @@ public class Farm {
 
     private final Tile[][] tiles = new Tile[ROWS][COLS];
     private Villager villager;
+    private Animal cat;
 
     public Farm() {
         for (int r = 0; r < ROWS; r++) {

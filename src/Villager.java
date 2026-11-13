@@ -57,5 +57,4 @@ public abstract class Villager {
         this.friendship = friendship;
         this.requestsDone = requestsDone;
     }
-
 }
