@@ -2,13 +2,16 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class Farm {
     public static final int TILE = 32;   // pixels
     public static final int COLS = 20;
     public static final int ROWS = 15;
-
-    // . grass   , tilled soil   # fence   ~ pond   H house   S shop   B shipping bin   V where the villager stands
+    // . grass   , tilled soil   # fence   ~ pond   H house   S shop   B shipping bin
+    // K Ajarn Khiao   D Mrs. Daeng   M Mee Ngern
     private static final String[] MAP = {
         "####################",
         "#HHHH.........SSSS.#",
@@ -16,10 +19,10 @@ public class Farm {
         "#HHHH.........SSSS.#",
         "#..................#",
         "#..................#",
-        "#...,,,,,..V.......#",
+        "#...,,,,,..K.......#",
         "#...,,,,,..........#",
-        "#..................#",
-        "#..................#",
+        "#....D.............#",
+        "#........M.........#",
         "#.............~~~..#",
         "#.B...........~~~~.#",
         "#.............~~~..#",
@@ -34,30 +37,50 @@ public class Farm {
     private static final Color WOOD = new Color(150, 105, 65);
 
     private final Tile[][] tiles = new Tile[ROWS][COLS];
-    private Villager villager;
-    private Animal cat;
+    private final List<Villager> villagers = new ArrayList<>();
+    private final List<Animal> animals = new ArrayList<>();
 
     public Farm() {
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
                 char symbol = MAP[r].charAt(c);
                 if (symbol == 'K') {
-                    villager = new Villager("Ajarn. Khiao", c, r);
+                    villagers.add(new ajKhiao("Ajarn. Khiao", c, r));
                     symbol = '.';
-                }
-                if (symbol == 'M') {
-                    cat = new Animal("meengern", c, r);
+                } else if (symbol == 'D') {
+                    villagers.add(new mrsDaeng("Mrs. Daeng", c, r));
+                    symbol = '.';
+                } else if (symbol == 'M') {
+                    animals.add(new meengern("Mee Ngern", c, r));
+                    symbol = '.';
                 }
                 tiles[r][c] = new Tile(TileType.fromSymbol(symbol));
             }
         }
     }
 
-    public Villager getVillager() { return villager; }
+    public List<Villager> getVillagers() {
+        return Collections.unmodifiableList(villagers);
+    }
+
+    public List<Animal> getAnimals() {
+        return Collections.unmodifiableList(animals);
+    }
 
     /** @return the villager standing on (col, row), or null */
     public Villager villagerAt(int col, int row) {
-        return villager != null && villager.getCol() == col && villager.getRow() == row ? villager : null;
+        for (Villager v : villagers) {
+            if (v.getCol() == col && v.getRow() == row) return v;
+        }
+        return null;
+    }
+
+    /** @return the animal standing on (col, row), or null */
+    public Animal animalAt(int col, int row) {
+        for (Animal a : animals) {
+            if (a.getCol() == col && a.getRow() == row) return a;
+        }
+        return null;
     }
 
     /** @return the tile, or null if (col, row) is off the map */
@@ -68,7 +91,10 @@ public class Farm {
 
     public boolean isWalkable(int col, int row) {
         Tile tile = tileAt(col, row);
-        return tile != null && tile.getType().isWalkable() && villagerAt(col, row) == null;
+        return tile != null
+                && tile.getType().isWalkable()
+                && villagerAt(col, row) == null
+                && animalAt(col, row) == null;
     }
 
     /** Growing crops that still need water today. */
@@ -93,7 +119,6 @@ public class Farm {
     }
 
     // ---- drawing --------------------------------------------------------------
-
     public void draw(Graphics2D g) {
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) drawTile(g, tiles[r][c], c, r);
@@ -104,69 +129,58 @@ public class Farm {
     }
 
     private void drawTile(Graphics2D g, Tile tile, int col, int row) {
-    int x = col * TILE, y = row * TILE;
-    int seed = col * 7 + row * 13;
-
-    switch (tile.getType()) {
-        case SOIL:
-            drawSoil(g, tile, x, y);
-            break;
-
-        case POND:
-            drawPond(g, x, y, seed);
-            break;
-
-        case FENCE:
-            drawFence(g, x, y, seed, col);
-            break;
-
-        default:
-            drawGrass(g, x, y, seed);
-    }
-}
-
-private void drawSoil(Graphics2D g, Tile tile, int x, int y) {
-    g.setColor(tile.isWatered() ? SOIL_WET : SOIL);
-    g.fillRect(x, y, TILE, TILE);
-
-    g.setColor(tile.isWatered() ? SOIL_WET.darker() : SOIL.darker());
-
-    for (int i = 6; i < TILE; i += 9) {
-        g.drawLine(x + 3, y + i, x + TILE - 4, y + i);
-    }
-
-    if (tile.hasCrop()) {
-        tile.getCrop().draw(g, x, y);
-
-        if (!tile.isWatered() && !tile.getCrop().isMature()) {
-            drawDroplet(g, x + 23, y + 2);
+        int x = col * TILE, y = row * TILE;
+        int seed = col * 7 + row * 13;
+        switch (tile.getType()) {
+            case SOIL:
+                drawSoil(g, tile, x, y);
+                break;
+            case POND:
+                drawPond(g, x, y, seed);
+                break;
+            case FENCE:
+                drawFence(g, x, y, seed, col);
+                break;
+            default:
+                drawGrass(g, x, y, seed);
         }
     }
-}
 
-private void drawPond(Graphics2D g, int x, int y, int seed) {
-    g.setColor(new Color(70, 140, 220));
-    g.fillRect(x, y, TILE, TILE);
-
-    g.setColor(new Color(150, 200, 250));
-    g.drawArc(x + 6, y + 8 + seed % 10, 12, 6, 0, 180);
-}
-
-private void drawFence(Graphics2D g, int x, int y, int seed, int col) {
-    drawGrass(g, x, y, seed);
-
-    g.setColor(WOOD);
-
-    if (col == 0 || col == COLS - 1) {
-        g.fillRect(x + 10, y, 3, TILE);
-        g.fillRect(x + 19, y, 3, TILE);
-        g.fillRect(x + 8, y + 12, 16, 8);
-    } else {
-        g.fillRect(x, y + 10, TILE, 3);
-        g.fillRect(x, y + 19, TILE, 3);
-        g.fillRect(x + 12, y + 6, 8, 20);
+    private void drawSoil(Graphics2D g, Tile tile, int x, int y) {
+        g.setColor(tile.isWatered() ? SOIL_WET : SOIL);
+        g.fillRect(x, y, TILE, TILE);
+        g.setColor(tile.isWatered() ? SOIL_WET.darker() : SOIL.darker());
+        for (int i = 6; i < TILE; i += 9) {
+            g.drawLine(x + 3, y + i, x + TILE - 4, y + i);
+        }
+        if (tile.hasCrop()) {
+            tile.getCrop().draw(g, x, y);
+            if (!tile.isWatered() && !tile.getCrop().isMature()) {
+                drawDroplet(g, x + 23, y + 2);
+            }
+        }
     }
-}
+
+    private void drawPond(Graphics2D g, int x, int y, int seed) {
+        g.setColor(new Color(70, 140, 220));
+        g.fillRect(x, y, TILE, TILE);
+        g.setColor(new Color(150, 200, 250));
+        g.drawArc(x + 6, y + 8 + seed % 10, 12, 6, 0, 180);
+    }
+
+    private void drawFence(Graphics2D g, int x, int y, int seed, int col) {
+        drawGrass(g, x, y, seed);
+        g.setColor(WOOD);
+        if (col == 0 || col == COLS - 1) {
+            g.fillRect(x + 10, y, 3, TILE);
+            g.fillRect(x + 19, y, 3, TILE);
+            g.fillRect(x + 8, y + 12, 16, 8);
+        } else {
+            g.fillRect(x, y + 10, TILE, 3);
+            g.fillRect(x, y + 19, TILE, 3);
+            g.fillRect(x + 12, y + 6, 8, 20);
+        }
+    }
 
     private void drawGrass(Graphics2D g, int x, int y, int seed) {
         g.setColor(GRASS);
@@ -208,7 +222,7 @@ private void drawFence(Graphics2D g, int x, int y, int seed, int col) {
         g.setColor(new Color(185, 65, 50));
         g.fillPolygon(new int[] {b.x - 2, b.x + b.width / 2, b.x + b.width + 2},
                       new int[] {wallTop + 8, b.y + 2, wallTop + 8}, 3);
-        g.setColor(new Color(120, 80, 45));             // door, above the tile the farmer wakes on
+        g.setColor(new Color(120, 80, 45));
         g.fillRect(b.x + TILE + 6, b.y + b.height - 30, 20, 30);
         g.setColor(new Color(150, 200, 240));
         g.fillRect(b.x + b.width - 46, wallTop + 16, 24, 18);
@@ -221,7 +235,7 @@ private void drawFence(Graphics2D g, int x, int y, int seed, int col) {
         g.fillRect(b.x + 6, b.y + 30, 4, b.height - 30);
         g.fillRect(b.x + b.width - 10, b.y + 30, 4, b.height - 30);
         g.fillRect(b.x + 2, b.y + b.height / 2 + 6, b.width - 4, b.height / 2 - 8);
-        for (int i = 0; i < 8; i++) {   // striped awning
+        for (int i = 0; i < 8; i++) {
             g.setColor(i % 2 == 0 ? new Color(220, 60, 60) : new Color(250, 245, 235));
             g.fillRect(b.x + i * b.width / 8, b.y + 6, b.width / 8, 24);
         }

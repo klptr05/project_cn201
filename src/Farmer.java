@@ -9,6 +9,7 @@ public class Farmer {
     public static final int MAX_ENERGY = 100;
     private static final int STEP_TICKS = 8;   // ticks to slide from one tile to the next
     private static final int TURN_TICKS = 5;   // hold this long after turning before walking
+    private boolean choice = false;
 
     private int col, row;
     private Direction facing = Direction.DOWN;
@@ -28,6 +29,14 @@ public class Farmer {
         this.row = row;
         this.gold = gold;
         for (String name : CropFactory.NAMES) seedBags.add(new SeedBag(name));
+    }
+
+    public boolean getChoice() {
+        return choice;
+    }
+
+    public void setChoice(boolean choice) {
+        this.choice = choice;
     }
 
     /** @param wanted the direction key being held, or null */

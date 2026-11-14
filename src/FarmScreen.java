@@ -82,7 +82,6 @@ public class FarmScreen implements Screen {
     }
 
     // ---- keys -----------------------------------------------------------------
-
     @Override
     public void keyPressed(int code) {
         if (fadeTicks > 0) return;
@@ -99,6 +98,11 @@ public class FarmScreen implements Screen {
         Villager villager = farm.villagerAt(col, row);
         if (villager != null) {
             talkTo(villager);
+            return;
+        }
+        Animal animal = farm.animalAt(col, row);
+        if (animal != null) {
+            talkTo(animal);
             return;
         }
         Tile tile = farm.tileAt(col, row);
@@ -125,7 +129,7 @@ public class FarmScreen implements Screen {
                 String name = tile.harvest();
                 farmer.getBasket().add(name, 1);
                 floatAt(col, row, "+1 " + name, Color.WHITE);
-                say("Picked a " + name.toLowerCase() + " - ship it in the bin, or save it for Mrs. Daeng");
+                say("Picked a " + name.toLowerCase() + " - ship it in the bin, or save it for villagers");
                 return;
             }
             Tool tool = farmer.toolFor(tile);
@@ -142,6 +146,7 @@ public class FarmScreen implements Screen {
     String hint() {
         int col = farmer.facingCol(), row = farmer.facingRow();
         if (farm.villagerAt(col, row) != null) return "Talk";
+        if (farm.animalAt(col, row) != null) return "Talk";
         Tile tile = farm.tileAt(col, row);
         if (tile == null) return null;
         switch (tile.getType()) {
@@ -157,11 +162,30 @@ public class FarmScreen implements Screen {
     }
 
     private void talkTo(Villager villager) {
+        if (villager instanceof ajKhiao) {
+            if (checklist != null) checklist.complete(Checklist.Step.TALK_KHIAO);
+            ajKhiao khiao = (ajKhiao) villager;
+            if (khiao.shouldAskQuestion()) {
+                game.setScreen(new ChoiceScreen(
+                    game,
+                    this,
+                    khiao.getName(),
+                    khiao.getQuestionText(),
+                    answer -> say(khiao.answerQuestion(farmer, answer))
+                ));
+                return;
+            }
+        }
         int before = farmer.getGold();
         say(villager.talk(farmer));
         int reward = farmer.getGold() - before;
         if (reward > 0) floatAt(villager.getCol(), villager.getRow(), "+" + reward + "G", Ui.HIGHLIGHT);
-        if (checklist != null) checklist.complete(Checklist.Step.TALK);
+        if (checklist != null && villager instanceof mrsDaeng) checklist.complete(Checklist.Step.TALK);
+    }
+
+    private void talkTo(Animal animal) {
+        say(animal.talk(farmer));
+        if (checklist != null && animal instanceof meengern) checklist.complete(Checklist.Step.TALK_MEENGERN);
     }
 
     private void ship() throws FarmException {
@@ -181,7 +205,6 @@ public class FarmScreen implements Screen {
         int thirsty = farm.countThirstyCrops();
         String detail = thirsty == 0 ? "Watered crops grow one day overnight."
                 : thirsty + (thirsty == 1 ? " crop hasn't" : " crops haven't") + " been watered yet!";
-        // with thirsty crops the safe answer, "Not yet", is picked to begin with
         game.setScreen(new ConfirmScreen(game, this, "Go to bed and end the day?", detail,
                 "Sleep", "Not yet", thirsty > 0, () -> sleep(false)));
     }
@@ -198,20 +221,20 @@ public class FarmScreen implements Screen {
         }
         if (shippedToday.isEmpty()) lines.add("Nothing was shipped today.");
         shippedToday.clear();
-
         int goldBefore = farmer.getGold();
         farmer.earn(earned);
         clock.nextDay(rng);
         farm.newDay(clock.getWeather());
-        String news = farm.getVillager().newDay(clock.getDay(), rng);
-        if (news != null) lines.add(news);
+        for (Villager v : farm.getVillagers()) {
+            String news = v.newDay(clock.getDay(), rng);
+            if (news != null) lines.add(news);
+        }
         farmer.wakeUp(DOOR_COL, DOOR_ROW, passedOut);
         floatingTexts.clear();
         messageTicks = 0;
         checklist = null;   // the first day is over
-
         try {
-            if (isMonthOver()) game.getSaveGame().delete();   // the story is over
+            if (isMonthOver()) game.getSaveGame().delete();
             else game.getSaveGame().save(farm, farmer, clock);
         } catch (IOException e) {
             lines.add("Couldn't save: " + e.getMessage());
@@ -220,7 +243,6 @@ public class FarmScreen implements Screen {
     }
 
     // ---- update ---------------------------------------------------------------
-
     @Override
     public void update() {
         if (fadeTicks > 0) {
@@ -230,7 +252,6 @@ public class FarmScreen implements Screen {
         if (messageTicks > 0) messageTicks--;
         for (FloatingText text : floatingTexts) text.update();
         floatingTexts.removeIf(FloatingText::isDone);
-
         clock.tick();
         if (clock.isMidnight()) {
             sleep(true);
@@ -252,33 +273,38 @@ public class FarmScreen implements Screen {
     }
 
     // ---- drawing --------------------------------------------------------------
-
     @Override
     public void draw(Graphics2D g) {
         farm.draw(g);
         int col = farmer.facingCol(), row = farmer.facingRow();
         g.setColor(new Color(255, 255, 255, 110));   // the tile SPACE will act on
         g.drawRect(col * Farm.TILE, row * Farm.TILE, Farm.TILE - 1, Farm.TILE - 1);
-        drawPeople(g);
+        drawEntities(g);
         if (clock.getWeather() == Weather.RAINY) drawRain(g);
         g.setColor(new Color(15, 15, 50, clock.darkness()));
         g.fillRect(0, 0, Ui.WIDTH, Ui.MAP_HEIGHT);
         for (FloatingText text : floatingTexts) text.draw(g);
         drawHint(g, col, row);
-
-        Hud.draw(g, farmer, clock, farm.getVillager());
+        Hud.draw(g, farmer, clock, farm.getVillagers());
         if (checklist != null) checklist.draw(g, 195, 36);
         if (messageTicks > 0) drawMessage(g);
         if (fadeTicks > 0) drawDayStart(g);
     }
 
-    /** Whoever stands lower on the screen is drawn last, so they appear in front. */
-    private void drawPeople(Graphics2D g) {
-        Villager villager = farm.getVillager();
-        boolean villagerBehind = villager.getRow() <= farmer.getRow();
-        if (villagerBehind) villager.draw(g, game.getFrames());
-        farmer.draw(g);
-        if (!villagerBehind) villager.draw(g, game.getFrames());
+    /** Draws villagers, animals, and the farmer from top row to bottom row so front characters overlap cleanly. */
+    private void drawEntities(Graphics2D g) {
+        int frames = game.getFrames();
+        for (int r = 0; r < Farm.ROWS; r++) {
+            for (Villager v : farm.getVillagers()) {
+                if (v.getRow() == r) v.draw(g, frames);
+            }
+            for (Animal a : farm.getAnimals()) {
+                if (a.getRow() == r) a.draw(g, frames);
+            }
+            if (farmer.getRow() == r) {
+                farmer.draw(g);
+            }
+        }
     }
 
     /** A small "SPACE  Water" tag beside the highlighted tile. */
@@ -289,7 +315,6 @@ public class FarmScreen implements Screen {
         g.setFont(Ui.font(12));
         int width = g.getFontMetrics().stringWidth(text) + 12;
         int x = col * Farm.TILE + Farm.TILE / 2 - width / 2;
-        // above the tile, unless the farmer is standing there (facing down) or it would leave the screen
         int y = farmer.getFacing() == Direction.DOWN || row == 0 ? (row + 1) * Farm.TILE + 2 : row * Farm.TILE - 20;
         x = Math.max(2, Math.min(Ui.WIDTH - width - 2, x));
         g.setColor(new Color(0, 0, 0, 180));
@@ -303,7 +328,7 @@ public class FarmScreen implements Screen {
         g.setColor(new Color(40, 60, 100, 50));
         g.fillRect(0, 0, Ui.WIDTH, Ui.MAP_HEIGHT);
         g.setColor(new Color(190, 210, 255, 150));
-        for (int i = 0; i < 140; i++) {   // scattered by index, falling with time: no per-drop state needed
+        for (int i = 0; i < 140; i++) {
             int x = (i * 53 + frames * 2) % (Ui.WIDTH + 20) - 10;
             int y = (i * 97 + frames * 9) % Ui.MAP_HEIGHT;
             g.drawLine(x, y, x - 3, y + 10);
@@ -312,16 +337,37 @@ public class FarmScreen implements Screen {
 
     private void drawMessage(Graphics2D g) {
         g.setFont(Ui.font(13));
-        int width = g.getFontMetrics().stringWidth(message) + 24;
-        int x = (Ui.WIDTH - width) / 2, y = Ui.MAP_HEIGHT - 44;
-        g.setColor(new Color(0, 0, 0, 170));
-        g.fillRoundRect(x, y, width, 28, 10, 10);
+        java.awt.FontMetrics fm = g.getFontMetrics();
+        int maxTextWidth = Ui.WIDTH - 64;
+        List<String> lines = new ArrayList<>();
+        StringBuilder line = new StringBuilder();
+        for (String word : message.split(" ")) {
+            String test = line.length() == 0 ? word : line + " " + word;
+            if (fm.stringWidth(test) <= maxTextWidth) {
+                line = new StringBuilder(test);
+            } else {
+                lines.add(line.toString());
+                line = new StringBuilder(word);
+            }
+        }
+        if (line.length() > 0) lines.add(line.toString());
+        int longest = 0;
+        for (String l : lines) longest = Math.max(longest, fm.stringWidth(l));
+        int width = longest + 24;
+        int lineHeight = 18;
+        int height = lines.size() * lineHeight + 12;
+        int x = (Ui.WIDTH - width) / 2;
+        int y = Ui.MAP_HEIGHT - height - 14;
+        g.setColor(new Color(0, 0, 0, 185));
+        g.fillRoundRect(x, y, width, height, 10, 10);
         g.setColor(Color.WHITE);
-        g.drawString(message, x + 12, y + 19);
+        for (int i = 0; i < lines.size(); i++) {
+            g.drawString(lines.get(i), x + 12, y + 19 + i * lineHeight);
+        }
     }
 
     private void drawDayStart(Graphics2D g) {
-        int alpha = Math.min(255, fadeTicks * 255 * 2 / FADE_TICKS);   // stays black for the first half
+        int alpha = Math.min(255, fadeTicks * 255 * 2 / FADE_TICKS);
         Ui.dim(g, alpha);
         Ui.centered(g, "Day " + clock.getDay() + " of " + LAST_DAY, 40, Ui.MAP_HEIGHT / 2 - 10, new Color(255, 255, 255, alpha));
         Ui.centered(g, clock.getWeather().getMorningText(), 18, Ui.MAP_HEIGHT / 2 + 24, new Color(255, 230, 120, alpha));

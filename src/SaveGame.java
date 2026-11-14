@@ -6,15 +6,6 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Saves the farm as plain text you can open and read, e.g.
- *   day 4
- *   weather RAINY
- *   gold 380
- *   seeds Turnip 2
- *   request Turnip 3 360 4     (crop amount reward daysLeft)
- *   soil 5 6 Turnip 1 wet      (col row crop daysGrown wet/dry; "-" for an empty plot)
- */
 public class SaveGame {
     private static final String HEADER = "little-farm save 1";
     private final Path file;
@@ -27,7 +18,6 @@ public class SaveGame {
         return Files.exists(file);
     }
 
-    /** A one-line description for the title menu, e.g. "Day 5, 780G", or null if there is no save. */
     public String describe() {
         if (!exists()) return null;
         String day = "?", gold = "?";
@@ -54,17 +44,32 @@ public class SaveGame {
             out.println("gold " + farmer.getGold());
             out.println("earned " + farmer.getTotalEarned());
             out.println("can " + farmer.getCan().getWater());
-            for (String name : CropFactory.NAMES) out.println("seeds " + name + " " + farmer.getSeedBag(name).getSeeds());
+            for (String name : CropFactory.NAMES) {
+                out.println("seeds " + name + " " + farmer.getSeedBag(name).getSeeds());
+            }
             for (Map.Entry<String, Integer> entry : farmer.getBasket().asMap().entrySet()) {
                 out.println("basket " + entry.getKey() + " " + entry.getValue());
             }
-            Villager villager = farm.getVillager();
-            out.println("villager " + villager.getFriendship() + " " + villager.getRequestsDone());
-            Request request = villager.getRequest();
-            if (request != null) {
-                out.println("request " + request.getCropName() + " " + request.getAmount() + " "
-                        + request.getReward() + " " + request.getDaysLeft());
+
+            for (Villager v : farm.getVillagers()) {
+                String id = v.getClass().getSimpleName();
+                out.println("villager " + id + " " + v.getFriendship() + " " + v.getRequestsDone());
+                Request request = v.getRequest();
+                if (request != null) {
+                    out.println("request " + id + " " + request.getCropName() + " " + request.getAmount() + " "
+                            + request.getReward() + " " + request.getDaysLeft());
+                }
+                if (v instanceof ajKhiao) {
+                    ajKhiao k = (ajKhiao) v;
+                    out.println("khiao_state " + k.isAskedQuestion() + " " + k.isQuestCompleted() + " " + farmer.getChoice());
+                }
             }
+
+            for (Animal a : farm.getAnimals()) {
+                String id = a.getClass().getSimpleName();
+                out.println("animal " + id + " " + a.getFriendship());
+            }
+
             for (int r = 0; r < Farm.ROWS; r++) {
                 for (int c = 0; c < Farm.COLS; c++) {
                     Tile tile = farm.tileAt(c, r);
@@ -77,11 +82,9 @@ public class SaveGame {
         }
     }
 
-    /** Fills a brand-new farm, farmer and clock from the file. */
     public void loadInto(Farm farm, Farmer farmer, GameClock clock) throws IOException {
         List<String> lines = Files.readAllLines(file);
         if (lines.isEmpty() || !lines.get(0).equals(HEADER)) throw new IOException("not a Little Farm save file");
-
         for (int i = 1; i < lines.size(); i++) {
             String[] parts = lines.get(i).trim().split(" ");
             try {
@@ -91,24 +94,64 @@ public class SaveGame {
                     case "gold":    farmer.setGold(Integer.parseInt(parts[1])); break;
                     case "earned":  farmer.setTotalEarned(Integer.parseInt(parts[1])); break;
                     case "villager":
-                        farm.getVillager().restore(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+                        if (parts.length == 3 && !farm.getVillagers().isEmpty()) {
+                            farm.getVillagers().get(0).restore(Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+                        } else {
+                            Villager v = findVillager(farm, parts[1]);
+                            if (v != null) v.restore(Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
+                        }
+                        break;
+                    case "khiao_state":
+                        Villager kv = findVillager(farm, "ajKhiao");
+                        if (kv instanceof ajKhiao) {
+                            ((ajKhiao) kv).restoreState(Boolean.parseBoolean(parts[1]), Boolean.parseBoolean(parts[2]));
+                        }
+                        if (parts.length > 3) farmer.setChoice(Boolean.parseBoolean(parts[3]));
                         break;
                     case "request":
-                        farm.getVillager().setRequest(new Request(parts[1], Integer.parseInt(parts[2]),
-                                Integer.parseInt(parts[3]), Integer.parseInt(parts[4])));
+                        if (parts.length == 5 && !farm.getVillagers().isEmpty()) {
+                            farm.getVillagers().get(0).setRequest(new Request(parts[1], Integer.parseInt(parts[2]),
+                                    Integer.parseInt(parts[3]), Integer.parseInt(parts[4])));
+                        } else {
+                            Villager v = findVillager(farm, parts[1]);
+                            if (v != null) {
+                                v.setRequest(new Request(parts[2], Integer.parseInt(parts[3]),
+                                        Integer.parseInt(parts[4]), Integer.parseInt(parts[5])));
+                            }
+                        }
+                        break;
+                    case "animal":
+                        Animal a = findAnimal(farm, parts[1]);
+                        if (a != null) a.restore(Integer.parseInt(parts[2]));
                         break;
                     case "can":    farmer.getCan().setWater(Integer.parseInt(parts[1])); break;
                     case "seeds":  farmer.getSeedBag(parts[1]).setSeeds(Integer.parseInt(parts[2])); break;
                     case "basket": farmer.getBasket().add(parts[1], Integer.parseInt(parts[2])); break;
                     case "soil":   loadSoil(farm, parts); break;
-                    case "":       break;   // blank line
+                    case "":       break;
                     default:       throw new IOException("line " + (i + 1) + ": unknown entry '" + parts[0] + "'");
                 }
             } catch (IllegalArgumentException | IndexOutOfBoundsException | FarmException e) {
-                // NumberFormatException is an IllegalArgumentException, so a bad number lands here too
                 throw new IOException("line " + (i + 1) + " is damaged: " + lines.get(i), e);
             }
         }
+        for (Villager v : farm.getVillagers()) {
+            v.setCurrentDay(clock.getDay());
+        }
+    }
+
+    private Villager findVillager(Farm farm, String id) {
+        for (Villager v : farm.getVillagers()) {
+            if (v.getClass().getSimpleName().equals(id)) return v;
+        }
+        return null;
+    }
+
+    private Animal findAnimal(Farm farm, String id) {
+        for (Animal a : farm.getAnimals()) {
+            if (a.getClass().getSimpleName().equals(id)) return a;
+        }
+        return null;
     }
 
     private void loadSoil(Farm farm, String[] parts) throws FarmException {

@@ -7,13 +7,13 @@ import java.util.Random;
 public abstract class Villager {
     public static final int MAX_FRIENDSHIP = 5;
     public static final int FIRST_REQUEST_DAY = 2;
-
     protected final String name;
     protected final int col, row;
     protected Request request;
-    protected int friendship = 0;
+    protected int friendship = 3;
     protected int requestsDone = 0;
     protected int chats = 0;
+    protected int currentDay = 1;
 
     public Villager(String name, int col, int row) {
         this.name = name;
@@ -26,7 +26,8 @@ public abstract class Villager {
     public abstract void draw(Graphics2D g, int frames);
 
     /** @return news for the end-of-day summary, or null if nothing happened */
-    public String newDay(int day, Random rng) { //อันนี้คือเหี้ยไรกุงง
+    public String newDay(int day, Random rng) {
+        this.currentDay = day;
         String news = null;
         if (request != null && !request.passDay()) {
             news = name + " gave up waiting for the " + request.getCropName() + ".";
@@ -41,6 +42,7 @@ public abstract class Villager {
         return news;
     }
 
+    public void setCurrentDay(int day) { this.currentDay = day; }
     public String getName() { return name; }
     public int getCol() { return col; }
     public int getRow() { return row; }

@@ -29,11 +29,11 @@ public class TitleScreen implements Screen {
     @Override
     public void draw(Graphics2D g) {
         backdrop.draw(g);
-        backdrop.getVillager().draw(g, game.getFrames());
+        for (Villager v : backdrop.getVillagers()) v.draw(g, game.getFrames());
+        for (Animal a : backdrop.getAnimals()) a.draw(g, game.getFrames());
         g.setColor(Ui.WOOD);
         g.fillRect(0, Ui.MAP_HEIGHT, Ui.WIDTH, Ui.HUD_HEIGHT);
         Ui.dim(g, 150);
-
         Ui.centered(g, "LITTLE FARM", 48, 130, Ui.HIGHLIGHT);
         Ui.centered(g, "Grandpa left you his farm - and a " + FarmScreen.GOAL_GOLD + "G debt.", 15, 180, Color.WHITE);
         Ui.centered(g, "Pay it off by the end of day " + FarmScreen.LAST_DAY + ".", 15, 202, Color.WHITE);
