@@ -11,7 +11,19 @@ public class GameClock {
     private int day = 1;
     private int minutes = DAY_START;
     private int ticks = 0;
-    private Weather weather = Weather.SUNNY;   // day 1 is always fine
+    private Weather weather = Weather.SUNNY;
+    private final RainChanceStrategy rainStrategy;
+
+    public GameClock() {
+        this(RainChanceStrategyFactory.create("normal"));
+    }
+
+    public GameClock(RainChanceStrategy rainStrategy) {
+        if (rainStrategy == null) {
+            throw new IllegalArgumentException("rainStrategy cannot be null");
+        }
+        this.rainStrategy = rainStrategy;
+    }
 
     public void tick() {
         if (++ticks >= TICKS_PER_STEP) {
@@ -26,7 +38,10 @@ public class GameClock {
         day++;
         minutes = DAY_START;
         ticks = 0;
-        weather = Weather.forecast(rng);
+
+        weather = rainStrategy.shouldRain(rng)
+                ? Weather.RAINY
+                : Weather.SUNNY;
     }
 
     public int getDay() { return day; }

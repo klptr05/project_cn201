@@ -22,7 +22,7 @@ public class FarmScreen implements Screen {
     private final Random rng = new Random();
     private final Farm farm = new Farm();
     private final Farmer farmer = new Farmer(DOOR_COL, DOOR_ROW, STARTING_GOLD);
-    private final GameClock clock = new GameClock();
+    private final GameClock clock;
     private final Bag<String> shippedToday = new Bag<>();   // paid out when the farmer sleeps
     private final List<FloatingText> floatingTexts = new ArrayList<>();
     private Checklist checklist;                           // only on the first day of a new game
@@ -32,6 +32,8 @@ public class FarmScreen implements Screen {
 
     private FarmScreen(GamePanel game) {
         this.game = game;
+        this.clock = new GameClock(game.getRainStrategy());
+
         farmer.getSeedBag("Turnip").addSeeds(STARTING_SEEDS);
     }
 

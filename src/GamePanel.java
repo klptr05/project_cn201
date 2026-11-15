@@ -28,8 +28,18 @@ public class GamePanel extends JPanel implements ActionListener {
     private int frames;
     private String runtimeError;
     private String runtimeErrorLocation;
+    private final RainChanceStrategy rainStrategy;
 
     public GamePanel() {
+        this(RainChanceStrategyFactory.create("normal"));
+    }
+
+    public GamePanel(RainChanceStrategy rainStrategy) {
+        if (rainStrategy == null) {
+            throw new IllegalArgumentException("rainStrategy cannot be null");
+        }
+
+        this.rainStrategy = rainStrategy;
         setPreferredSize(new Dimension((int) (Ui.WIDTH * START_SCALE), (int) (Ui.HEIGHT * START_SCALE)));
         setBackground(Color.BLACK);
         setFocusable(true);
@@ -98,5 +108,9 @@ public class GamePanel extends JPanel implements ActionListener {
     void render(Graphics2D g) {
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         screen.draw(g);
+    }
+
+    public RainChanceStrategy getRainStrategy() {
+        return rainStrategy;
     }
 }
