@@ -34,6 +34,26 @@ public class SaveGame {
     private static final String HEADER = "little-farm save 1";
     private final Path file;
 
+    private static String hashLine(String line) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(line.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder result = new StringBuilder();
+            for (byte b : hash) {
+                result.append(String.format("%02x", b & 0xff));
+            }
+            return result.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void writeCheckedLine(PrintWriter out, String line) {
+        out.println(line + "\t" + hashLine(line));
+    }
+
     public SaveGame(String fileName) {
         this.file = Paths.get(fileName);
     }
@@ -98,28 +118,31 @@ public class SaveGame {
             for (Animal a : farm.getAnimals()) {
                 String id = a.getClass().getSimpleName();
                 writeCheckedLine(out, "animal " + id + " " + a.getFriendship());
-            }
+            for (int i = 1; i < lines.size(); i++) {
+                String rawLine = lines.get(i);
+                int separator = rawLine.lastIndexOf('\t');
 
-            for (int r = 0; r < Farm.ROWS; r++) {
-                for (int c = 0; c < Farm.COLS; c++) {
-                    Tile tile = farm.tileAt(c, r);
-                    if (tile.getType() != TileType.SOIL) continue;
-                    Crop crop = tile.getCrop();
-                    writeCheckedLine(out, "soil " + c + " " + r + " " + (crop == null ? "- 0" : crop.getName() + " " + crop.getDaysGrown())
-                            + (tile.isWatered() ? " wet" : " dry"));
+                if (separator == -1) {
+                    throw new IOException(
+                            "line " + (i + 1) + " is damaged: " + rawLine);
+                }
+
+                String data = rawLine.substring(0, separator);
+                String savedHash = rawLine.substring(separator + 1);
+
+                if (!hashLine(data).equals(savedHash)) {
+                    throw new IOException(
+                            "line " + (i + 1) + " is modified: " + data);
                 }
             }
-        }
-    }
 
-    public void loadInto(Farm farm, Farmer farmer, GameClock clock) throws IOException {
-        List<String> lines = Files.readAllLines(file);
-    if (lines.isEmpty()) {
-        throw new IOException("line 1 is damaged: <empty file> (missing save header)");}
-    if (!lines.get(0).equals(HEADER)) {
-        throw new IOException("line 1 is damaged: " + lines.get(0)+ " (expected '" + HEADER + "')");}
-        for (int i = 1; i < lines.size(); i++) {
-            String rawLine = lines.get(i);
+            for (int i = 1; i < lines.size(); i++) {
+                String rawLine = lines.get(i);
+                String data = rawLine.substring(0, rawLine.lastIndexOf('\t'));
+                String[] parts = data.trim().split("\\s+");
+
+                try {
+                    switch (parts[0]) {
             int separator = rawLine.lastIndexOf('\t');
 
             if (separator == -1) {
