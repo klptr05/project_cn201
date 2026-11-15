@@ -43,7 +43,8 @@ public class ShopScreen implements Screen {
             farm.floatAtFacing("-" + total + "G", new Color(255, 140, 120));
             status = "Bought " + quantity + " " + crop.getName() + " seeds. They're ready in your hand.";
         } catch (FarmException e) {
-            status = e.getMessage();
+            status = "ERROR: " + e.getMessage()
+            + " (" + e.getErrorLocation() + ")";
         }
     }
 

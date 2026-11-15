@@ -26,6 +26,8 @@ public class GamePanel extends JPanel implements ActionListener {
     private final SaveGame saveGame = new SaveGame("littlefarm_save.txt");
     private Screen screen;
     private int frames;
+    private String runtimeError;
+    private String runtimeErrorLocation;
 
     public GamePanel() {
         setPreferredSize(new Dimension((int) (Ui.WIDTH * START_SCALE), (int) (Ui.HEIGHT * START_SCALE)));
