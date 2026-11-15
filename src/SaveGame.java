@@ -5,6 +5,30 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
+private static String hashLine(String line) {
+    try {
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        byte[] hash = md.digest(line.getBytes(StandardCharsets.UTF_8));
+
+        StringBuilder result = new StringBuilder();
+        for (byte b : hash) {
+            result.append(String.format("%02x", b & 0xff));
+        }
+        return result.toString();
+
+    } catch (NoSuchAlgorithmException e) {
+        throw new IllegalStateException(e);
+    }
+}
+
+private static void writeCheckedLine(PrintWriter out, String line) {
+    out.println(line + "\t" + hashLine(line));
+}
+
 
 public class SaveGame {
     private static final String HEADER = "little-farm save 1";
@@ -22,7 +46,13 @@ public class SaveGame {
         if (!exists()) return null;
         String day = "?", gold = "?";
         try {
-            for (String line : Files.readAllLines(file)) {
+            for (String rawLine : Files.readAllLines(file)) {
+                int separator = rawLine.lastIndexOf('\t');
+
+                String line = separator == -1
+                        ? rawLine
+                        : rawLine.substring(0, separator);
+
                 if (line.startsWith("day ")) day = line.substring(4);
                 else if (line.startsWith("gold ")) gold = line.substring(5);
             }
@@ -39,35 +69,35 @@ public class SaveGame {
     public void save(Farm farm, Farmer farmer, GameClock clock) throws IOException {
         try (PrintWriter out = new PrintWriter(Files.newBufferedWriter(file))) {
             out.println(HEADER);
-            out.println("day " + clock.getDay());
-            out.println("weather " + clock.getWeather().name());
-            out.println("gold " + farmer.getGold());
-            out.println("earned " + farmer.getTotalEarned());
-            out.println("can " + farmer.getCan().getWater());
+            writeCheckedLine(out, "day " + clock.getDay());
+            writeCheckedLine(out, "weather " + clock.getWeather().name());
+            writeCheckedLine(out, "gold " + farmer.getGold());
+            writeCheckedLine(out, "earned " + farmer.getTotalEarned());
+            writeCheckedLine(out, "can " + farmer.getCan().getWater());
             for (String name : CropFactory.NAMES) {
-                out.println("seeds " + name + " " + farmer.getSeedBag(name).getSeeds());
+                writeCheckedLine(out, "seeds " + name + " " + farmer.getSeedBag(name).getSeeds());
             }
             for (Map.Entry<String, Integer> entry : farmer.getBasket().asMap().entrySet()) {
-                out.println("basket " + entry.getKey() + " " + entry.getValue());
+                writeCheckedLine(out, "basket " + entry.getKey() + " " + entry.getValue());
             }
 
             for (Villager v : farm.getVillagers()) {
                 String id = v.getClass().getSimpleName();
-                out.println("villager " + id + " " + v.getFriendship() + " " + v.getRequestsDone());
+                writeCheckedLine(out, "villager " + id + " " + v.getFriendship() + " " + v.getRequestsDone());
                 Request request = v.getRequest();
                 if (request != null) {
-                    out.println("request " + id + " " + request.getCropName() + " " + request.getAmount() + " "
+                    writeCheckedLine(out, "request " + id + " " + request.getCropName() + " " + request.getAmount() + " "
                             + request.getReward() + " " + request.getDaysLeft());
                 }
                 if (v instanceof ajKhiao) {
                     ajKhiao k = (ajKhiao) v;
-                    out.println("khiao_state " + k.isAskedQuestion() + " " + k.isQuestCompleted() + " " + farmer.getChoice());
+                    writeCheckedLine(out, "khiao_state " + k.isAskedQuestion() + " " + k.isQuestCompleted() + " " + farmer.getChoice());
                 }
             }
 
             for (Animal a : farm.getAnimals()) {
                 String id = a.getClass().getSimpleName();
-                out.println("animal " + id + " " + a.getFriendship());
+                writeCheckedLine(out, "animal " + id + " " + a.getFriendship());
             }
 
             for (int r = 0; r < Farm.ROWS; r++) {
@@ -75,7 +105,7 @@ public class SaveGame {
                     Tile tile = farm.tileAt(c, r);
                     if (tile.getType() != TileType.SOIL) continue;
                     Crop crop = tile.getCrop();
-                    out.println("soil " + c + " " + r + " " + (crop == null ? "- 0" : crop.getName() + " " + crop.getDaysGrown())
+                    writeCheckedLine(out, "soil " + c + " " + r + " " + (crop == null ? "- 0" : crop.getName() + " " + crop.getDaysGrown())
                             + (tile.isWatered() ? " wet" : " dry"));
                 }
             }
@@ -89,7 +119,26 @@ public class SaveGame {
     if (!lines.get(0).equals(HEADER)) {
         throw new IOException("line 1 is damaged: " + lines.get(0)+ " (expected '" + HEADER + "')");}
         for (int i = 1; i < lines.size(); i++) {
-            String[] parts = lines.get(i).trim().split(" ");
+            String rawLine = lines.get(i);
+            int separator = rawLine.lastIndexOf('\t');
+
+            if (separator == -1) {
+                throw new IOException(
+                        "line " + (i + 1) + " is damaged: " + rawLine);
+            }
+
+            String data = rawLine.substring(0, separator);
+            String savedHash = rawLine.substring(separator + 1);
+
+            if (!hashLine(data).equals(savedHash)) {
+                throw new IOException(
+                        "line " + (i + 1) + " is modified: " + data);
+            }
+        }
+        
+            String rawLine = lines.get(i);
+            String data = rawLine.substring(0, rawLine.lastIndexOf('\t'));
+            String[] parts = data.trim().split("\\s+");
             try {
                 switch (parts[0]) {
                     case "day":     clock.setDay(Integer.parseInt(parts[1])); break;
