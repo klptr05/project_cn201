@@ -13,7 +13,7 @@ public class SeedBag implements Tool {
 
     @Override
     public void use(Tile tile) throws FarmException {
-        if (seeds == 0) throw new FarmException("No " + cropName + " seeds left - buy some at the shop");
+        if (seeds == 0) throw new OutOfSeedsException("No " + cropName + " seeds left - buy some at the shop");
         tile.plant(CropFactory.create(cropName));
         seeds--;
     }

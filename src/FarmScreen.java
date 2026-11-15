@@ -138,8 +138,7 @@ public class FarmScreen implements Screen {
             if (checklist != null && tool instanceof SeedBag) checklist.complete(Checklist.Step.PLANT);
             if (checklist != null && tool instanceof WateringCan) checklist.complete(Checklist.Step.WATER);
         } catch (FarmException e) {
-            say("ERROR: " + e.getMessage()
-            + " (" + e.getErrorLocation() + ")");
+            say("ERROR: " + e.getMessage());
         }
     }
 

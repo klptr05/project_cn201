@@ -81,13 +81,13 @@ public class Farmer {
     }
 
     public void use(Tool tool, Tile tile) throws FarmException {
-        if (energy < tool.getEnergyCost()) throw new FarmException("Too tired - go to bed in the house");
+        if (energy < tool.getEnergyCost()) throw new InsufficientEnergyException("Too tired - go to bed in the house");
         tool.use(tile);
         energy -= tool.getEnergyCost();   // only reached if use() didn't throw
     }
 
     public void spendGold(int amount) throws FarmException {
-        if (amount > gold) throw new FarmException("Not enough gold (need " + amount + "G)");
+        if (amount > gold) throw new InsufficientGoldException("Not enough gold (need " + amount + "G)");
         gold -= amount;
     }
 

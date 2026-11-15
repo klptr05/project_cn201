@@ -8,7 +8,7 @@ public class WateringCan implements Tool {
 
     @Override
     public void use(Tile tile) throws FarmException {
-        if (water == 0) throw new FarmException("The can is empty - refill it at the pond");
+        if (water == 0) throw new OutOfWaterException("The can is empty - refill it at the pond");
         tile.water();
         water--;
     }

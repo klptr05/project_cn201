@@ -3,9 +3,4 @@ public class FarmException extends Exception {
     public FarmException(String message) {
         super(message);
     }
-    public String getErrorLocation() {
-        StackTraceElement error = getStackTrace()[0];
-        return error.getFileName()
-                + " : line " + error.getLineNumber();
-    }
 }
