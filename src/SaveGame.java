@@ -84,7 +84,10 @@ public class SaveGame {
 
     public void loadInto(Farm farm, Farmer farmer, GameClock clock) throws IOException {
         List<String> lines = Files.readAllLines(file);
-        if (lines.isEmpty() || !lines.get(0).equals(HEADER)) throw new IOException("not a Little Farm save file");
+    if (lines.isEmpty()) {
+        throw new IOException("line 1 is damaged: <empty file> (missing save header)");}
+    if (!lines.get(0).equals(HEADER)) {
+        throw new IOException("line 1 is damaged: " + lines.get(0)+ " (expected '" + HEADER + "')");}
         for (int i = 1; i < lines.size(); i++) {
             String[] parts = lines.get(i).trim().split(" ");
             try {
