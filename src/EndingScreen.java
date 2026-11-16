@@ -23,9 +23,11 @@ public class EndingScreen implements Screen {
         Ui.dim(g, 215);
         int gold = farm.getFarmer().getGold();
         int goal = FarmScreen.GOAL_GOLD;
+
         Ui.centered(g, "DAY " + FarmScreen.LAST_DAY + " IS OVER", 38, 100, Color.WHITE);
         Ui.centered(g, "Grandpa's debt   " + goal + "G", 18, 155, new Color(200, 200, 200));
         Ui.centered(g, "Your gold        " + gold + "G", 18, 180, Ui.HIGHLIGHT);
+
         String verdict;
         if (gold >= 2 * goal) verdict = "A legendary farmer! The whole valley knows your name.";
         else if (gold >= goal) verdict = "Debt paid - the farm is yours!";
@@ -45,7 +47,6 @@ public class EndingScreen implements Screen {
                     14, y, Color.WHITE);
             y += 24;
         }
-
         if ((game.getFrames() / 30) % 2 == 0) Ui.centered(g, "press ENTER", 18, 460, Color.WHITE);
     }
 }

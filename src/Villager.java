@@ -6,7 +6,7 @@ import java.util.Random;
 /** A neighbour who stands on the farm, chats, and now and then asks for crops at double the price. */
 public abstract class Villager {
     public static final int MAX_FRIENDSHIP = 5;
-    public static final int FIRST_REQUEST_DAY = 2;
+    protected static final int FIRST_REQUEST_DAY = 2; //แก้ไข
     protected final String name;
     protected final int col, row;
     protected Request request;

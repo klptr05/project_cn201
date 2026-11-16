@@ -38,8 +38,8 @@ public class GamePanel extends JPanel implements ActionListener {
         if (rainStrategy == null) {
             throw new IllegalArgumentException("rainStrategy cannot be null");
         }
-
         this.rainStrategy = rainStrategy;
+        
         setPreferredSize(new Dimension((int) (Ui.WIDTH * START_SCALE), (int) (Ui.HEIGHT * START_SCALE)));
         setBackground(Color.BLACK);
         setFocusable(true);

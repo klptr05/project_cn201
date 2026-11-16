@@ -13,26 +13,6 @@ public class SaveGame {
     private static final String HEADER = "little-farm save 1";
     private final Path file;
 
-    private static String hashLine(String line) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(line.getBytes(StandardCharsets.UTF_8));
-
-            StringBuilder result = new StringBuilder();
-            for (byte b : hash) {
-                result.append(String.format("%02x", b & 0xff));
-            }
-            return result.toString();
-
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private static void writeCheckedLine(PrintWriter out, String line) {
-        out.println(line + "\t" + hashLine(line));
-    }
-
     public SaveGame(String fileName) {
         this.file = Paths.get(fileName);
     }
@@ -64,6 +44,27 @@ public class SaveGame {
     public void delete() throws IOException {
         Files.deleteIfExists(file);
     }
+
+    private static String hashLine(String line) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(line.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder result = new StringBuilder();
+            for (byte b : hash) {
+                result.append(String.format("%02x", b & 0xff));
+            }
+            return result.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static void writeCheckedLine(PrintWriter out, String line) {
+        out.println(line + "\t" + hashLine(line));
+    }
+
 
         public void save(Farm farm, Farmer farmer, GameClock clock) throws IOException {
             try (PrintWriter out = new PrintWriter(Files.newBufferedWriter(file))) {

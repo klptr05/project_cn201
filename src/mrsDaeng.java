@@ -1,7 +1,6 @@
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Font;
-import java.util.Random;
 
 public class mrsDaeng extends Villager {
     private static final String[] CHAT1 = {

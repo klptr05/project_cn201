@@ -21,9 +21,7 @@ public class Checklist {
     }
 
     private final Set<Step> done = EnumSet.noneOf(Step.class);
-
     public void complete(Step step) { done.add(step); }
-
     public boolean isDone(Step step) { return done.contains(step); }
 
     public void draw(Graphics2D g, int x, int y) {
@@ -32,7 +30,6 @@ public class Checklist {
         g.fillRoundRect(x, y, width, height, 12, 12);
         g.setColor(Ui.WOOD);
         g.drawRoundRect(x, y, width, height, 12, 12);
-
         g.setFont(Ui.font(13));
         g.drawString("Your first day", x + 10, y + 18);
 

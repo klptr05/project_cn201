@@ -41,10 +41,9 @@ public class SummaryScreen implements Screen {
         Ui.dim(g, 200);
         int width = 480, height = 350, left = (Ui.WIDTH - width) / 2, top = 80;
         Ui.paper(g, left, top, width, height);
-
         GameClock clock = farm.getClock();
-        Ui.centered(g, "End of Day " + (clock.getDay() - 1), 24, top + 40, Ui.WOOD);
 
+        Ui.centered(g, "End of Day " + (clock.getDay() - 1), 24, top + 40, Ui.WOOD);
         g.setFont(Ui.font(13));
         g.setColor(Ui.INK);
         FontMetrics fm = g.getFontMetrics();
@@ -79,14 +78,12 @@ public class SummaryScreen implements Screen {
             int textX = (Ui.WIDTH - g.getFontMetrics().stringWidth(weather)) / 2;
             g.drawString(weather, textX, top + 262);
             clock.getWeather().drawIcon(g, textX - 28, top + 246);
-
             int daysLeft = FarmScreen.LAST_DAY - clock.getDay() + 1;
             int stillNeeded = Math.max(0, FarmScreen.GOAL_GOLD - goldAfter);
             Ui.centered(g, daysLeft + " days left, " + stillNeeded + "G still needed", 15, top + 288, Ui.INK);
         } else {
             Ui.centered(g, "That was the last day of the month...", 15, top + 275, Ui.INK);
         }
-
         if (ticks >= COUNT_UP_TICKS && (game.getFrames() / 30) % 2 == 0) {
             Ui.centered(g, "press SPACE", 14, top + height - 18, Ui.WOOD);
         }

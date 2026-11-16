@@ -84,6 +84,7 @@ public class FarmScreen implements Screen {
     }
 
     // ---- keys -----------------------------------------------------------------
+
     @Override
     public void keyPressed(int code) {
         if (fadeTicks > 0) return;
@@ -245,6 +246,7 @@ public class FarmScreen implements Screen {
     }
 
     // ---- update ---------------------------------------------------------------
+
     @Override
     public void update() {
         if (fadeTicks > 0) {
@@ -254,6 +256,7 @@ public class FarmScreen implements Screen {
         if (messageTicks > 0) messageTicks--;
         for (FloatingText text : floatingTexts) text.update();
         floatingTexts.removeIf(FloatingText::isDone);
+
         clock.tick();
         if (clock.isMidnight()) {
             sleep(true);
@@ -287,6 +290,7 @@ public class FarmScreen implements Screen {
         g.fillRect(0, 0, Ui.WIDTH, Ui.MAP_HEIGHT);
         for (FloatingText text : floatingTexts) text.draw(g);
         drawHint(g, col, row);
+        
         Hud.draw(g, farmer, clock, farm.getVillagers());
         if (checklist != null) checklist.draw(g, 195, 36);
         if (messageTicks > 0) drawMessage(g);

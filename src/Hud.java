@@ -11,6 +11,7 @@ public class Hud {
         int top = Ui.MAP_HEIGHT;
         g.setColor(Ui.WOOD);
         g.fillRect(0, top, Ui.WIDTH, Ui.HUD_HEIGHT);
+
         g.setFont(Ui.font(15));
         g.setColor(Color.WHITE);
         int day = Math.min(clock.getDay(), FarmScreen.LAST_DAY);
@@ -18,6 +19,7 @@ public class Hud {
         clock.getWeather().drawIcon(g, 168, top + 5);
         g.setColor(Ui.HIGHLIGHT);
         g.drawString(farmer.getGold() + "/" + FarmScreen.GOAL_GOLD + "G", 198, top + 20);
+
         g.setColor(Color.WHITE);
         g.drawString("Energy", 340, top + 20);
         g.setColor(new Color(40, 30, 20));
@@ -33,6 +35,7 @@ public class Hud {
         }
         g.setColor(new Color(200, 185, 160));
         g.drawString("ESC menu", 548, top + 45);
+        
         g.setColor(new Color(230, 220, 200));
         g.drawString("Basket: " + farmer.getBasket(), 10, top + 71);
 
